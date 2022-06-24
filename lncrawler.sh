@@ -2,15 +2,15 @@
 
 lncrawlerhelp () {
     echo -e "Usage:\n\n"\
-        "--help                     Displays help\n"\
+        "--help -h                  Displays help\n"\
         "--install                  Installs lncrawler\n"\
-        "--update                   Updates lncrawler\n"\
+        "--update -u                Updates lncrawler\n"\
         "--uninstall                Uninstalls lncrawler\n"\
-        "--latest <url>             Downloads the latest chapter\n"\
+        "--latest -l <url>          Downloads the latest chapter\n"\
         "--first <number> <url>     Downloads the first <x> chapters\n"\
         "--last <number> <url>      Downloads the last <x> chapters\n"\
-        "--all <url>                Downloads everything\n"\
-        "--novels                   List followed novels"
+        "--all -a <url>             Downloads everything\n"\
+        "--novels -n                List followed novels"
     exit
 }
 
@@ -29,7 +29,12 @@ install () {
     then
         :
     else
-        build
+        if [ -d lightnovel-crawler ]
+        then
+            build
+        else
+            echo "Navigate to project directory - can't find lightnovel-crawler submodule"
+        fi
     fi
 
     if [ -d /home/$USER/.cache/lncrawler ]
@@ -73,19 +78,19 @@ case $1 in
     "")
         lncrawlerhelp;;
 
-    "--help")
+    "--help" | "-h")
         lncrawlerhelp;;
 
     "--install")
         install;;
 
-    "--update")
+    "--update" | "-u")
         update;;
 
     "--uninstall")
         uninstall;;
 
-    "--latest")
+    "--latest" | "-l")
         command="--suppress --format epub -f --single --last 1 -s $2 -o /home/appuser/app/Lightnovels/";;
 
     "--first")
@@ -94,10 +99,10 @@ case $1 in
     "--last")
         command="--suppress --format epub -f --single --last $2 -s $3 -o /home/appuser/app/Lightnovels/";;
 
-    "--all")
+    "--all" | "-a")
         command="--suppress --format epub -f --all -s $2 -o /home/appuser/app/Lightnovels/";;
 
-    "--novels")
+    "--novels" | "-n")
         crawler=$(which -a lncrawler)
         symlink_source=$(readlink $crawler)
         dir=$(dirname $symlink_source)
@@ -107,6 +112,10 @@ case $1 in
         exit
         ;;
 
+    *)
+        echo "Arguments contain invalid option"
+        exit
+    ;;
 
 esac
 
