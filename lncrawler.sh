@@ -4,12 +4,23 @@ lncrawlerhelp () {
     echo -e "Usage:\n\n"\
         "--help                     Displays help\n"\
         "--install                  Installs lncrawler\n"\
+        "--update                   Updates lncrawler\n"\
         "--uninstall                Uninstalls lncrawler\n"\
         "--latest <url>             Downloads the latest chapter\n"\
         "--first <number> <url>     Downloads the first <x> chapters\n"\
         "--last <number> <url>      Downloads the last <x> chapters\n"\
-        "--all <url>                Downloads everything"
+        "--all <url>                Downloads everything\n"\
+        "--novels                   List followed novels"
     exit
+}
+
+build() {
+    git pull --recurse
+    git submodule foreach git reset --hard
+    pushd lightnovel-crawler >/dev/null
+    echo "LABEL system.prune='do_not_delete'" >> ./scripts/Dockerfile
+    docker build -t lncrawler -f ./scripts/Dockerfile .
+    popd >/dev/null
 }
 
 install () {
@@ -18,12 +29,7 @@ install () {
     then
         :
     else
-        git submodule foreach git pull
-        git submodule foreach git reset --hard
-        pushd lightnovel-crawler >/dev/null
-        echo "LABEL system.prune='do_not_delete'" >> ./scripts/Dockerfile
-        docker build -t lncrawler -f ./scripts/Dockerfile .
-        popd >/dev/null
+        build
     fi
 
     if [ -d /home/$USER/.cache/lncrawler ]
@@ -31,6 +37,7 @@ install () {
         :
     else
         mkdir /home/$USER/.cache/lncrawler
+        echo "Cache folder is /home/$USER/.cache/lncrawler"
         echo "Downloads are placed in /home/$USER/Downloads/ folder"
     fi
 
@@ -39,8 +46,8 @@ install () {
         :
     else
         ln -s $(pwd)/lncrawler.sh /home/$USER/.local/bin/lncrawler
-        echo "You can now execute the crawler with 'lncrawler'"
     fi
+    echo -e "lncrawler is now installed\nrun lncrawler"
     exit
 }
 
@@ -49,6 +56,16 @@ uninstall () {
         rm -rf /home/$USER/.cache/lncrawler
         rm /home/$USER/.local/bin/lncrawler
         exit
+}
+
+update () {
+    crawler=$(which -a lncrawler)
+    symlink_source=$(readlink $crawler)
+    dir=$(dirname $symlink_source)
+    cd $dir
+    build
+    echo "lncrawler updated"
+    exit
 }
 
 case $1 in
@@ -61,6 +78,9 @@ case $1 in
 
     "--install")
         install;;
+
+    "--update")
+        update;;
 
     "--uninstall")
         uninstall;;
@@ -76,6 +96,16 @@ case $1 in
 
     "--all")
         command="--suppress --format epub -f --all -s $2 -o /home/appuser/app/Lightnovels/";;
+
+    "--novels")
+        crawler=$(which -a lncrawler)
+        symlink_source=$(readlink $crawler)
+        dir=$(dirname $symlink_source)
+        cd $dir
+        echo "$dir/novels.txt"
+        cat novels.txt 2>/dev/null
+        exit
+        ;;
 
 
 esac
