@@ -10,16 +10,18 @@ lncrawlerhelp () {
         "--first <number> <url>     Downloads the first <x> chapters\n"\
         "--last <number> <url>      Downloads the last <x> chapters\n"\
         "--all -a <url>             Downloads everything\n"\
+        "--default -d               No settings\n"\
         "--novels -n                List followed novels"
     exit
 }
 
 build() {
+    git submodule foreach git fetch --all
     git pull --recurse
     git submodule foreach git reset --hard
     pushd lightnovel-crawler >/dev/null
     echo "LABEL system.prune='do_not_delete'" >> ./scripts/Dockerfile
-    docker build -t lncrawler -f ./scripts/Dockerfile .
+    docker build -t lncrawl:latest -f ./scripts/Dockerfile .
     popd >/dev/null
 }
 
@@ -102,6 +104,9 @@ case $1 in
     "--all" | "-a")
         command="--suppress --format epub -f --all -s $2 -o /home/appuser/app/Lightnovels/";;
 
+    "--default" | "-d")
+        command="";;
+
     "--novels" | "-n")
         crawler=$(which -a lncrawler)
         symlink_source=$(readlink $crawler)
@@ -119,7 +124,7 @@ case $1 in
 
 esac
 
-docker run --rm -v "/home/$USER/.cache/lncrawler:/home/appuser/app/Lightnovels" -it lncrawler $command
+docker run --rm -v "/home/$USER/.cache/lncrawler:/home/appuser/app/Lightnovels" -it lncrawl $command
 
 find /home/$USER/.cache/lncrawler/ -name "*.epub" -exec mv {} /home/$USER/Downloads/ \;
 
